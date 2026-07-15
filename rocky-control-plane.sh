@@ -20,8 +20,10 @@ dnf install -y \
   containerd.io \
   conntrack-tools \
   openssl \
-  curl
-  
+  curl \
+  iscsi-initiator-utils
+systemctl enable --now iscsid
+
 # Disable swap (Kubernetes requires this)
 swapoff -a
 sed -i '/swap/d' /etc/fstab

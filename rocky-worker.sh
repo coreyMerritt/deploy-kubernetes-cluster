@@ -17,7 +17,12 @@ dnf install -y \
   tar \
   dnf-plugins-core \
   containerd.io \
-  conntrack-tools
+  conntrack-tools \
+  openssl \
+  curl \
+  iscsi-initiator-utils \
+  nfs-utils
+systemctl enable --now iscsid
 
 # Disable swap (Kubernetes requires this)
 swapoff -a

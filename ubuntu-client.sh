@@ -35,9 +35,8 @@ chmod 600 "${KUBE_CONFIG}"
 echo "[INFO] Verifying cluster access..."
 kubectl get nodes
 
-# Install Cilium
-curl -sL --remote-name https://github.com/cilium/cilium-cli/releases/latest/download/cilium-linux-amd64.tar.gz
-sudo tar xzvfC cilium-linux-amd64.tar.gz /usr/local/bin
-rm cilium-linux-amd64.tar.gz
-cilium install
-cilium status --wait
+# Install helm
+curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+chmod +x get_helm.sh
+./get_helm.sh
+rm -rf get_helm.sh
