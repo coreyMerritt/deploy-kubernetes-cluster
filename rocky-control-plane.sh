@@ -3,17 +3,24 @@
 set -euo pipefail
 
 KUBERNETES_CONTROL_PLANE_DNS_NAME="kubernetes-control-plane-1.lan"
-KUBERNETES_CONTROL_PLANE_IP_ADDRESS="10.0.5.0"
+KUBERNETES_CONTROL_PLANE_HOSTNAME="kubernetes-control-plane-1"
+KUBERNETES_CONTROL_PLANE_IP_ADDRESS="10.0.5.99"
 KUBEADM_MARKER="/etc/kubernetes/admin.conf"
 POD_CIDR="10.244.0.0/16"
 
+# Set hostname
+hostnamectl set-hostname "$KUBERNETES_CONTROL_PLANE_HOSTNAME"
+
 # Install packages
+dnf update -y
 dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
 dnf install -y \
   tar \
   dnf-plugins-core \
   containerd.io \
-  conntrack-tools
+  conntrack-tools \
+  openssl \
+  curl
   
 # Disable swap (Kubernetes requires this)
 swapoff -a
@@ -65,7 +72,7 @@ else
   kubeadm init \
     --pod-network-cidr "$POD_CIDR" \
     --upload-certs \
-    --apiserver-cert-extra-sans "${KUBERNETES_CONTROL_PLANE_DNS_NAME},${KUBERNETES_CONTROL_PLANE_IP_ADDRESS}"
+    --apiserver-cert-extra-sans "${KUBERNETES_CONTROL_PLANE_DNS_NAME},${KUBERNETES_CONTROL_PLANE_HOSTNAME},${KUBERNETES_CONTROL_PLANE_IP_ADDRESS}"
   read -p "Take note of the output of this command to assign worker vars"
 fi
 
@@ -75,11 +82,14 @@ TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
 mkdir -p "$TARGET_HOME/.kube"
 cp /etc/kubernetes/admin.conf "$TARGET_HOME/.kube/config"
 chown "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.kube/config"
+mkdir -p /root/.kube
+cp /etc/kubernetes/admin.conf /root/.kube/config
 
-# Install Cilium
-curl --silent -L --remote-name https://github.com/cilium/cilium-cli/releases/latest/download/cilium-linux-amd64.tar.gz
-tar xzvfC cilium-linux-amd64.tar.gz /usr/bin
-rm cilium-linux-amd64.tar.gz
-cilium install
-cilium status --wait
+# Deploy flannel
+kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+
+# Verify 
+echo "[INFO] Waiting 30s before checking pod status..."
+sleep 30
+kubectl get pods -n kube-system | grep cilium
 kubectl get nodes

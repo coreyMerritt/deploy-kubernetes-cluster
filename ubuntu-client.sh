@@ -5,7 +5,7 @@ set -euo pipefail
 # Vars 
 CONTROL_PLANE_USER="root"
 CONTROL_PLANE_HOST="kubernetes-control-plane-1.lan"
-CONTROL_PLANE_IP="10.0.5.0"
+CONTROL_PLANE_IP="10.0.5.99"
 KUBECTL_VERSION="v1.31.14"
 KUBE_DIR="${HOME}/.kube"
 KUBE_CONFIG="${KUBE_DIR}/config"
@@ -22,8 +22,8 @@ fi
 
 # Ensure control plane hostname resolves (fallback to /etc/hosts if not) 
 if ! getent hosts "${CONTROL_PLANE_HOST}" >/dev/null 2>&1; then
-  echo "[INFO] ${CONTROL_PLANE_HOST} not resolvable, adding to /etc/hosts..."
-  echo "${CONTROL_PLANE_IP}   ${CONTROL_PLANE_HOST}" | sudo tee -a /etc/hosts >/dev/null
+  echo "[ERROR] ${CONTROL_PLANE_HOST} not resolvable, exiting..."
+  exit 1
 fi
 
 # Pull admin kubeconfig from control plane 
@@ -34,3 +34,10 @@ chmod 600 "${KUBE_CONFIG}"
 # Verify access 
 echo "[INFO] Verifying cluster access..."
 kubectl get nodes
+
+# Install Cilium
+curl -sL --remote-name https://github.com/cilium/cilium-cli/releases/latest/download/cilium-linux-amd64.tar.gz
+sudo tar xzvfC cilium-linux-amd64.tar.gz /usr/local/bin
+rm cilium-linux-amd64.tar.gz
+cilium install
+cilium status --wait

@@ -2,10 +2,16 @@
 
 set -euo pipefail
 
+KUBERNETES_CONTROL_PLANE_DNS_NAME="kubernetes-control-plane-1.lan"
+KUBERNETES_WORKER_HOSTNAME=""  # ex) "kubernetes-worker-1"
 [[ "$KUBERNETES_TOKEN" ]]
 [[ "$KUBERNETES_CERT_HASH" ]]
 
+# Set hostname
+hostnamectl set-hostname "$KUBERNETES_WORKER_HOSTNAME"
+
 # Install packages
+dnf update -y
 dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
 dnf install -y \
   tar \
@@ -56,6 +62,6 @@ dnf install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
 systemctl enable --now kubelet
 
 # Join the worker to the control plane
-kubeadm join kubernetes-control-plane-1.lan:6443 \
+kubeadm join "${KUBERNETES_CONTROL_PLANE_DNS_NAME}:6443" \
   --token "$KUBERNETES_TOKEN" \
   --discovery-token-ca-cert-hash "sha256:${KUBERNETES_CERT_HASH}"
