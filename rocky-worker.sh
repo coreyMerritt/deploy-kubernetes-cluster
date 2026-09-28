@@ -3,12 +3,19 @@
 set -euo pipefail
 
 KUBERNETES_CONTROL_PLANE_DNS_NAME="kubernetes-control-plane-1.lan"
-KUBERNETES_WORKER_HOSTNAME=""  # ex) "kubernetes-worker-1"
-[[ "$KUBERNETES_TOKEN" ]]
+KUBERNETES_WORKER_HOSTNAME="kubernetes-gpu-worker-1"  # ex) "kubernetes-worker-1"
+[[ "$KUBERNETES_TOKEN" ]] || {
+  echo -e "\n\tTo get a Kubernetes Token, run the following on any control plane:\n\t\tkubeadm token create --kubeconfig ~/.kube/config --print-join-command"
+  exit 1
+}
 [[ "$KUBERNETES_CERT_HASH" ]]
 
 # Set hostname
 hostnamectl set-hostname "$KUBERNETES_WORKER_HOSTNAME"
+
+# Force dnf to use ipv4
+echo "ip_resolve=4" >> /etc/dnf/dnf.conf
+dnf clean metadata
 
 # Install packages
 dnf update -y
